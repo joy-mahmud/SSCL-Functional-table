@@ -1,10 +1,10 @@
 'use client'
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, ReactNode } from "react";
 import { ChevronUp, ChevronDown, EyeOff, MoreVertical, AlignLeft, AlignRight, Columns3, ArrowUpWideNarrow, Eye, CircleCheck, Download, ChevronLeft, MoveLeft, MoveRight } from "lucide-react";
 import Link from "next/link";
 import Tooltip from "./Tooltip";
-import RightSideModal from "./RightsideModal";
+
 
 type Column = {
     id: string;
@@ -19,6 +19,16 @@ type filterType = {
     id: string,
     label: string,
     value: string
+}
+interface RightSideModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    height?: string; // e.g. "h-[400px]"
+    children: ReactNode;
+}
+interface SwitchProps {
+    checked: boolean;
+    disabled?: boolean;
 }
 
 const filterItems: filterType[] = [
@@ -57,6 +67,10 @@ const data: Row[] = [
 
 const FunctionalTable = () => {
     const [modalOpen, setModalOpen] = useState(false);
+    const [enabledColumns, setEnabledColumns] = useState(columns.map((col)=>{
+        return {...col,enabled:true}
+    }));
+
     const [searchTerm, setSearchTerm] = useState("")
     const [activeFilterItem, setActiveFilterItem] = useState<string>("all")
     const [filterColumnName, setFilterColumnName] = useState<string>("Select a column name")
@@ -64,6 +78,7 @@ const FunctionalTable = () => {
     const [visibleColumns, setVisibleColumns] = useState<string[]>(
         columns.map((col) => col.id)
     );
+
     const [numberOfPending, setNumberOfPending] = useState<number | null>(null)
     const [numberOfReturned, setNumberOfReturned] = useState<number | null>(null)
     const [paginatedData, setPaginatedData] = useState<Row[] | null>(null)
@@ -182,10 +197,7 @@ const FunctionalTable = () => {
         }, 0);
     };
 
-    const hideColumn = (colId: string) => {
-        setVisibleColumns((prev) => prev.filter((id) => id !== colId));
-        setOpenDropdown(null);
-    };
+
     //console.log(visibleColumns)
     const handleFilterByStatus = (filter_item: string) => {
         setActiveFilterItem(filter_item)
@@ -218,10 +230,73 @@ const FunctionalTable = () => {
         setopenfilterByColumnDropdown(!openfilterByColumnDropdown)
 
     }
+    const hideColumn = (colId: string) => {
+        setVisibleColumns((prev) => prev.filter((id) => id !== colId));
+        setOpenDropdown(null);
+        setEnabledColumns((prev) => prev.map((col) => {
+            if (col.id == colId) {
+                console.log(!col.enabled)
+                return { id: col.id, label: col.label, enabled: !col.enabled }
+
+            }
+            else {
+                return { id: col.id, label: col.label, enabled: col.enabled }
+            }
+
+        }))
+    };
+    // const ToggleShowColumns = (colId: string) => {
+
+    //     setEnabledColumns((prev) => prev.map((col) => {
+    //         if (col.id == colId) {
+    //             console.log(!col.enabled)
+    //             return { id: col.id, label: col.label, enabled: !col.enabled }
+
+    //         }
+    //         else {
+    //             return { id: col.id, label: col.label, enabled: col.enabled }
+    //         }
+
+    //     }))
+    //     const visiblecol = enabledColumns.find((data)=>{
+    //         if(data.id==colId){
+    //              return data.id
+    //         }
+    //     })
+    //     console.log(visiblecol)
+
+    // }
+    const ToggleShowColumns = (colId: string) => {
+        setEnabledColumns((prev) => {
+            const updated = prev.map((col) => {
+                if (col.id === colId) {
+                    return { ...col, enabled: !col.enabled };
+                }
+                return col;
+            });
+
+            const newVisibleColumns = updated
+                .filter((col) => col.enabled)
+                .map((col) => col.id);
+
+            setVisibleColumns(newVisibleColumns);
+
+            return updated;
+        });
+    };
     const showAllColumns = () => {
         setVisibleColumns(
             columns.map((col) => col.id)
         )
+        setEnabledColumns(columns.map((col)=>{
+            return {...col,enabled:true}
+        }))
+    }
+    const hideAllColumns = () => {
+        setVisibleColumns([])
+        setEnabledColumns(columns.map((col)=>{
+            return {...col,enabled:false}
+        }))
     }
     const handleSort = (sortType: string) => {
         if (sortType == 'asc') {
@@ -301,7 +376,40 @@ const FunctionalTable = () => {
             </div>
             <div className=" pb-5 shadow-lg border border-t-0 border-gray-300">
                 <div className=" flex p-5 pr-0 justify-end mr-10">
-                    <button onClick={() => showAllColumns()} className="hover:cursor-pointer hover:bg-gray-200 w-[40px] h-[40px] flex items-center justify-center rounded-full"><Tooltip content="Show all columns"><Columns3></Columns3></Tooltip></button>
+                    <button onClick={() => setModalOpen(true)} className="hover:cursor-pointer hover:bg-gray-200 w-[40px] h-[40px] flex items-center justify-center rounded-full"><Tooltip content="Show all columns"><Columns3></Columns3></Tooltip></button>
+                    <RightSideModal isOpen={modalOpen} onClose={() => setModalOpen(false)} height="h-3/4">
+                        <div className="flex justify-between items-center">
+                            <button onClick={() => showAllColumns()} className="uppercase hover:cursor-pointer">Show all </button>
+                            <div className="flex gap-3 items-center">
+                                <button onClick={() => hideAllColumns()} className="uppercase hover:cursor-pointer">Hide all </button>
+                                <button
+                                    className="text-gray-950 hover:text-gray-900 bg-gray-200 hover:bg-gray-400 px-3 py-1 rounded-md hover:cursor-pointer"
+                                    onClick={() => setModalOpen(false)}
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        </div>
+                        <hr className="mt-2" />
+                        <div className="mt-2">
+                            {enabledColumns.map((col) => {
+                                return (
+                                    <div key={col.id} className="hover:bg-gray-200 px-2 py-2 mb-2 rounded-md">
+                                        <div className="flex gap-3 items-center">
+                                            <label onClick={() => ToggleShowColumns(col.id)} className="flex items-center gap-3">
+                                                <Switch checked={col.enabled} />
+                                            </label>
+                                            <span>{col.label}</span>
+                                        </div>
+                                    </div>
+
+                                )
+                            })}
+
+
+                        </div>
+                    </RightSideModal>
+
                 </div>
                 <div className="overflow-x-auto">
                     <table className=" min-w-max w-full table-auto  ">
@@ -433,22 +541,67 @@ const FunctionalTable = () => {
                     </button>
                 </div>
             </div>
-            <div className="p-10">
-                <button
-                    className="bg-blue-600 text-white px-4 py-2 rounded"
-                    onClick={() => setModalOpen(true)}
-                >
-                    Open Modal
-                </button>
-
-                <RightSideModal isOpen={modalOpen} onClose={() => setModalOpen(false)}>
-                    <h2 className="text-xl font-semibold mb-4">Right Side Modal</h2>
-                    <p>This is a custom modal sliding in from the right!</p>
-                </RightSideModal>
-            </div>
         </div>
 
     );
 }
+const RightSideModal: React.FC<RightSideModalProps> = ({
+    isOpen,
+    onClose,
+    children,
+    height = "h-[500px]", // default height
+}) => {
+    useEffect(() => {
+        document.body.style.overflow = isOpen ? "hidden" : "";
+        return () => {
+            document.body.style.overflow = "";
+        };
+    }, [isOpen]);
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-50 bg-transparent flex justify-end items-center">
+            {/* Overlay click */}
+            <div
+                className="absolute inset-0"
+                onClick={onClose}
+            />
+
+            {/* Centered right-side modal */}
+            <div
+                className={`relative bg-white shadow-xl p-6 w-full max-w-[400px] rounded-md ${height} transition-transform duration-300 ease-in-out overflow-y-auto`}
+            >
+
+                {children}
+            </div>
+        </div>
+    );
+};
+const Switch: React.FC<SwitchProps> = ({ checked, disabled = false }) => {
+    return (
+        <button
+            type="button"
+            role="switch"
+            aria-checked={checked}
+            disabled={disabled}
+            className={`
+          relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 
+          border-transparent transition-colors duration-200 ease-in-out 
+          focus:outline-none 
+          ${checked ? "bg-gray-950" : "bg-gray-400"} 
+          ${disabled ? "opacity-50 cursor-not-allowed" : ""}
+        `}
+        >
+            <span
+                className={`
+            pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow 
+            ring-0 transition duration-200 ease-in-out
+            ${checked ? "translate-x-5" : "translate-x-0"}
+          `}
+            />
+        </button>
+    );
+};
 
 export default FunctionalTable
