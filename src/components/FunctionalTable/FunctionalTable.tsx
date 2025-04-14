@@ -7,8 +7,9 @@ import Tooltip from "./Tooltip";
 
 
 type Column = {
-    id: string;
+    accessorKey: string;
     label: string;
+    Cell?: ({ cell }: { cell: any }) => ReactNode;
 };
 
 type Row = {
@@ -39,18 +40,24 @@ const filterItems: filterType[] = [
 
 
 const columns: Column[] = [
-    { id: "sl", label: "SL" },
-    { id: "actions", label: "Actions" },
-    { id: "lc_number", label: "LC Number" },
-    { id: "rpa_lc_number", label: "RPA LC Number" },
-    { id: "lc_type", label: "LC Type" },
-    { id: "lc_status", label: "LC Status" },
-    { id: "creation_date_time", label: "Date & Time of Creation" },
-    { id: "company", label: "Company Name" },
-    { id: "lc_beneficiary", label: "LC Beneficiary" },
-    { id: "currency", label: "Currency" },
-    { id: "lc_amount", label: "LC Amount" },
-    { id: "remarks", label: "Remarks" },
+    { accessorKey: "sl", label: "SL",Cell:({cell}:any)=>{
+        return(
+            <div>
+                <h2>Hello</h2>
+            </div>
+        )
+    } },
+    { accessorKey: "actions", label: "Actions" },
+    { accessorKey: "lc_number", label: "LC Number" },
+    { accessorKey: "rpa_lc_number", label: "RPA LC Number" },
+    { accessorKey: "lc_type", label: "LC Type" },
+    { accessorKey: "lc_status", label: "LC Status" },
+    { accessorKey: "creation_date_time", label: "Date & Time of Creation" },
+    { accessorKey: "company", label: "Company Name" },
+    { accessorKey: "lc_beneficiary", label: "LC Beneficiary" },
+    { accessorKey: "currency", label: "Currency" },
+    { accessorKey: "lc_amount", label: "LC Amount" },
+    { accessorKey: "remarks", label: "Remarks" },
 ];
 
 const data: Row[] = [
@@ -75,9 +82,10 @@ const FunctionalTable = () => {
     const [activeFilterItem, setActiveFilterItem] = useState<string>("all")
     const [filterColumnName, setFilterColumnName] = useState<string>("Select a column name")
     const [selectedFilterColumn, setSelectedFilterColumn] = useState<string>("")
-    const [visibleColumns, setVisibleColumns] = useState<string[]>(
-        columns.map((col) => col.id)
-    );
+    // const [visibleColumns, setVisibleColumns] = useState<string[]>(
+    //     columns.map((col) => col.id)
+    // );
+    const [visibleColumns, setVisibleColumns] = useState(columns);
 
     const [numberOfPending, setNumberOfPending] = useState<number | null>(null)
     const [numberOfReturned, setNumberOfReturned] = useState<number | null>(null)
@@ -220,29 +228,24 @@ const FunctionalTable = () => {
         if (column_name === "Select a column name") {
             setFilterColumnName("Select a column name")
         } else {
-            const column = columns.find(val => val.id == column_name)
+            const column = columns.find(val => val.accessorKey == column_name)
             console.log(column)
             column && setFilterColumnName(column?.label)
-            column && setSelectedFilterColumn(column?.id)
+            column && setSelectedFilterColumn(column?.accessorKey)
 
 
         }
         setopenfilterByColumnDropdown(!openfilterByColumnDropdown)
 
     }
-    const hideColumn = (colId: string) => {
-        setVisibleColumns((prev) => prev.filter((id) => id !== colId));
+    const hideColumn = (accessorKey: string) => {
+        setVisibleColumns((prev) => prev.filter((col) => col.accessorKey !== accessorKey));
         setOpenDropdown(null);
         setEnabledColumns((prev) => prev.map((col) => {
-            if (col.id == colId) {
-                console.log(!col.enabled)
-                return { id: col.id, label: col.label, enabled: !col.enabled }
-
+            if (col.accessorKey === accessorKey) {
+                return { ...col, enabled: !col.enabled };
             }
-            else {
-                return { id: col.id, label: col.label, enabled: col.enabled }
-            }
-
+            return col;
         }))
     };
     // const ToggleShowColumns = (colId: string) => {
@@ -269,7 +272,7 @@ const FunctionalTable = () => {
     const ToggleShowColumns = (colId: string) => {
         setEnabledColumns((prev) => {
             const updated = prev.map((col) => {
-                if (col.id === colId) {
+                if (col.accessorKey === colId) {
                     return { ...col, enabled: !col.enabled };
                 }
                 return col;
@@ -277,7 +280,6 @@ const FunctionalTable = () => {
 
             const newVisibleColumns = updated
                 .filter((col) => col.enabled)
-                .map((col) => col.id);
 
             setVisibleColumns(newVisibleColumns);
 
@@ -285,9 +287,7 @@ const FunctionalTable = () => {
         });
     };
     const showAllColumns = () => {
-        setVisibleColumns(
-            columns.map((col) => col.id)
-        )
+        setVisibleColumns(columns)
         setEnabledColumns(columns.map((col)=>{
             return {...col,enabled:true}
         }))
@@ -347,10 +347,10 @@ const FunctionalTable = () => {
                                 {openfilterByColumnDropdown && <div ref={dropdownRef} className="absolute left-0 whitespace-nowrap bg-white border border-gray-200 shadow-md rounded-md z-10">
                                     <ul className="text-sm text-gray-700">
                                         {columns.map((col) => {
-                                            if (col.id != "sl" && col.id != "actions") {
+                                            if (col.accessorKey != "sl" && col.accessorKey != "actions") {
                                                 return (
-                                                    <li key={col.id}
-                                                        onClick={() => handleFilterByColumn(col.id)}
+                                                    <li key={col.accessorKey}
+                                                        onClick={() => handleFilterByColumn(col.accessorKey)}
                                                         className="px-3 py-1 hover:bg-gray-300 cursor-pointer flex items-center gap-2"
                                                     >
                                                         {col.label}
@@ -394,9 +394,9 @@ const FunctionalTable = () => {
                         <div className="mt-2">
                             {enabledColumns.map((col) => {
                                 return (
-                                    <div key={col.id} className="hover:bg-gray-200 px-2 py-2 mb-2 rounded-md">
+                                    <div key={col.accessorKey} className="hover:bg-gray-200 px-2 py-2 mb-2 rounded-md">
                                         <div className="flex gap-3 items-center">
-                                            <label onClick={() => ToggleShowColumns(col.id)} className="flex items-center gap-3">
+                                            <label onClick={() => ToggleShowColumns(col.accessorKey)} className="flex items-center gap-3">
                                                 <Switch checked={col.enabled} />
                                             </label>
                                             <span>{col.label}</span>
@@ -414,72 +414,81 @@ const FunctionalTable = () => {
                 <div className="overflow-x-auto">
                     <table className=" min-w-max w-full table-auto  ">
                         <thead className="bg-gray-100">
-                            <tr>
-                                {columns.map((col) =>
-                                    visibleColumns.includes(col.id) ? (
-                                        <th
-                                            key={col.id}
-                                            className=" px-4 py-2 text-left border-b border-gray-300"
-                                        >
-                                            <div className="flex items-center gap-3 hover:cursor-pointer">
-                                                {col.label}
-                                                <div className="relative">
-                                                    <button
-                                                        className="p-1 rounded-full hover:bg-gray-200 w-[30px] h-[30px] hover:cursor-pointer"
-                                                        onClick={(e) => toggleDropdown(e, col.id)}
-                                                    >
-                                                        <MoreVertical size={20} />
-                                                    </button>
-                                                    {openDropdown === col.id && (
-                                                        <div ref={dropdownRef} className="fixed mt-2 whitespace-nowrap bg-white border border-gray-200 shadow-md rounded-md z-1000" style={{
-                                                            top: dropdownPosition.top,
-                                                            left: dropdownPosition.left,
+                        <tr>
+  {visibleColumns.map((col) => (
+    <th
+      key={col.accessorKey}
+      className="px-4 py-2 text-left border-b border-gray-300"
+    >
+      <div className="flex items-center gap-3 hover:cursor-pointer">
+        {col.label}
+        <div className="relative">
+          <button
+            className="p-1 rounded-full hover:bg-gray-200 w-[30px] h-[30px] hover:cursor-pointer"
+            onClick={(e) => toggleDropdown(e, col.accessorKey)}
+          >
+            <MoreVertical size={20} />
+          </button>
 
-                                                        }}>
-                                                            <ul className="text-sm text-gray-700">
-                                                                <li
-                                                                    onClick={() => handleSort("clear")}
-                                                                    className="px-3 py-2 hover:bg-gray-300 cursor-pointer flex items-center gap-2"
-                                                                >
-                                                                    <ArrowUpWideNarrow size={20} />Clear sort
-                                                                </li>
-                                                                <li onClick={() => handleSort("asc")} className="px-3 py-2 hover:bg-gray-300 cursor-pointer flex items-center gap-2">
-                                                                    <AlignLeft size={20} /> Sort By {col.label} Ascending
-                                                                </li>
-                                                                <li onClick={() => handleSort("desc")} className="px-3 py-2 hover:bg-gray-300 cursor-pointer flex items-center gap-2">
-                                                                    <AlignRight size={20} /> Sort {col.label} Descending
-                                                                </li>
-                                                                <li
-                                                                    onClick={() => hideColumn(col.id)}
-                                                                    className="px-3 py-2 hover:bg-gray-300 cursor-pointer flex items-center gap-2"
-                                                                >
-                                                                    <EyeOff size={20} />Hide Column
-                                                                </li>
-                                                                <li aria-disabled={true}
-                                                                    onClick={() => showAllColumns()}
-                                                                    className="px-3 py-2 hover:bg-gray-300 cursor-pointer flex items-center gap-2"
-                                                                >
-                                                                    <Columns3 size={20} />Show all columns
-                                                                </li>
-                                                            </ul>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </th>
-                                    ) : null
-                                )}
-                            </tr>
+          {openDropdown === col.accessorKey && (
+            <div
+              ref={dropdownRef}
+              className="fixed mt-2 whitespace-nowrap bg-white border border-gray-200 shadow-md rounded-md z-1000"
+              style={{
+                top: dropdownPosition.top,
+                left: dropdownPosition.left,
+              }}
+            >
+              <ul className="text-sm text-gray-700">
+                <li
+                  onClick={() => handleSort("clear")}
+                  className="px-3 py-2 hover:bg-gray-300 cursor-pointer flex items-center gap-2"
+                >
+                  <ArrowUpWideNarrow size={20} />Clear sort
+                </li>
+                <li
+                  onClick={() => handleSort("asc")}
+                  className="px-3 py-2 hover:bg-gray-300 cursor-pointer flex items-center gap-2"
+                >
+                  <AlignLeft size={20} /> Sort By {col.label} Ascending
+                </li>
+                <li
+                  onClick={() => handleSort("desc")}
+                  className="px-3 py-2 hover:bg-gray-300 cursor-pointer flex items-center gap-2"
+                >
+                  <AlignRight size={20} /> Sort {col.label} Descending
+                </li>
+                <li
+                  onClick={() => hideColumn(col.accessorKey)}
+                  className="px-3 py-2 hover:bg-gray-300 cursor-pointer flex items-center gap-2"
+                >
+                  <EyeOff size={20} />Hide Column
+                </li>
+                <li
+                  onClick={() => showAllColumns()}
+                  className="px-3 py-2 hover:bg-gray-300 cursor-pointer flex items-center gap-2"
+                >
+                  <Columns3 size={20} />Show all columns
+                </li>
+              </ul>
+            </div>
+          )}
+        </div>
+      </div>
+    </th>
+  ))}
+</tr>
+
                         </thead>
                         <tbody>
                             {paginatedData && paginatedData.map((row, rowIndex) => (
                                 <tr key={rowIndex} className="border-t border-gray-200">
-                                    {visibleColumns.map((colId) => (
-                                        <td key={colId} className="px-4 py-2">
-                                            {colId == "actions" ? <div className="flex gap-3 items-center">
+                                    {visibleColumns.map((col) => (
+                                        <td key={col.accessorKey} className="px-4 py-2">
+                                            {col.accessorKey == "actions" ? <div className="flex gap-3 items-center">
                                                 <Link href={'/details'}><Eye size={20} /></Link>
                                                 <CircleCheck size={16} color="#008000" />
-                                            </div> : row[colId]}
+                                            </div> : row[col.accessorKey]}
 
                                         </td>
                                     ))}
